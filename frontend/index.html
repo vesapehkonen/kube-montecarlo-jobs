@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Job Processing Demo</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        margin: 24px;
+        line-height: 1.35;
+      }
+      h1 { margin: 0 0 12px 0; }
+      .card {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 16px;
+        max-width: 980px;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: end;
+      }
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 14px;
+      }
+      input {
+        padding: 8px 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        min-width: 180px;
+      }
+      button {
+        padding: 10px 14px;
+        border: 1px solid #111827;
+        background: #111827;
+        color: white;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      button:disabled { opacity: 0.6; cursor: not-allowed; }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+      }
+      th, td {
+        border-top: 1px solid #e5e7eb;
+        padding: 10px 8px;
+        text-align: left;
+        vertical-align: top;
+        font-size: 14px;
+      }
+      th { font-weight: 600; color: #111827; }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        border: 1px solid #d1d5db;
+      }
+      .badge.queued { background: #f9fafb; }
+      .badge.running { background: #eef2ff; border-color: #c7d2fe; }
+      .badge.done { background: #ecfdf5; border-color: #a7f3d0; }
+      .badge.failed { background: #fef2f2; border-color: #fecaca; }
+      .muted { color: #6b7280; font-size: 12px; }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+      .nowrap { white-space: nowrap; }
+    </style>
+  </head>
+
+  <body>
+    <h1>Job Processing Demo</h1>
+
+    <div class="card">
+      <div class="row">
+        <label>
+          Ticker
+          <input id="ticker" value="AAPL" />
+        </label>
+
+        <label>
+          Horizon (days)
+          <input id="horizon_days" type="number" min="1" max="3650" value="252" />
+        </label>
+
+        <label>
+          Simulations
+          <input id="simulations" type="number" min="100" max="2000000" value="50000" />
+        </label>
+
+        <button id="submit">Submit Job</button>
+      </div>
+
+      <div class="muted" style="margin-top: 10px">
+        CPU-bound Monte Carlo simulation. Polling updates automatically.
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th class="nowrap">Created</th>
+            <th class="nowrap">Job ID</th>
+            <th class="nowrap">Ticker</th>
+            <th class="nowrap">Status</th>
+            <th>Result / Error</th>
+          </tr>
+        </thead>
+        <tbody id="jobsBody">
+          <tr>
+            <td colspan="5" class="muted">No jobs yet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+      const jobsBody = document.getElementById("jobsBody");
+      const submitBtn = document.getElementById("submit");
+
+      function escapeHtml(s) {
+        return String(s)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function badge(status) {
+        const cls = ["queued", "running", "done", "failed"].includes(status) ? status : "queued";
+        return `<span class="badge ${cls}">${escapeHtml(status)}</span>`;
+      }
+
+      function fmtNum(x, digits = 2) {
+        if (x === null || x === undefined || Number.isNaN(x)) return "";
+        const n = Number(x);
+        if (!Number.isFinite(n)) return "";
+        return n.toFixed(digits);
+      }
+
+      function formatResult(result) {
+        if (!result) return "";
+        const current = fmtNum(result.current_price, 2);
+        const expected = fmtNum(result.expected_future_price, 2);
+        const pLoss =
+          result.probability_of_loss !== undefined && result.probability_of_loss !== null
+            ? (Number(result.probability_of_loss) * 100).toFixed(1) + "%"
+            : "";
+        const var95 = fmtNum(result.var_95, 2);
+        const src = result.price_source ? `src=${result.price_source}` : "";
+
+        return `
+          <div class="mono">
+            current=${escapeHtml(current)}&nbsp;
+            expected=${escapeHtml(expected)}&nbsp;
+            pLoss=${escapeHtml(pLoss)}&nbsp;
+            VaR95=${escapeHtml(var95)}
+            ${src ? "&nbsp;" + escapeHtml(src) : ""}
+          </div>
+        `;
+      }
+
+      function formatCreated(ts) {
+        if (ts === null || ts === undefined) return "";
+
+        // epoch seconds (number) -> ms
+        if (typeof ts === "number") {
+          const d = new Date(ts * 1000);
+          return Number.isNaN(d.getTime()) ? "" : d.toLocaleString();
+        }
+
+        // fallback for ISO strings
+        const d = new Date(ts);
+        if (Number.isNaN(d.getTime())) return String(ts);
+        return d.toLocaleString();
+      }
+
+      async function submitJob() {
+        const ticker = document.getElementById("ticker").value.trim();
+        const horizon_days = Number(document.getElementById("horizon_days").value);
+        const simulations = Number(document.getElementById("simulations").value);
+
+        submitBtn.disabled = true;
+        try {
+          const res = await fetch("/api/jobs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ticker, horizon_days, simulations }),
+          });
+
+          if (!res.ok) {
+            const text = await res.text();
+            alert(`Job submission failed (${res.status}): ${text}`);
+            return;
+          }
+
+          await res.json();
+          await refreshJobs();
+        } finally {
+          submitBtn.disabled = false;
+        }
+      }
+
+      function renderJobs(jobs) {
+        if (!Array.isArray(jobs) || jobs.length === 0) {
+          jobsBody.innerHTML = `<tr><td colspan="5" class="muted">No jobs yet.</td></tr>`;
+          return;
+        }
+
+        jobsBody.innerHTML = jobs
+          .map((job) => {
+            const created = formatCreated(job.created_at);
+            const id = escapeHtml(job.id ?? "");
+            const ticker = escapeHtml(job.ticker ?? "");
+            const status = job.status ?? "queued";
+
+            let details = "";
+            if (status === "done") {
+              details = formatResult(job.result);
+            } else if (status === "failed") {
+              details = `<div class="mono">${escapeHtml(job.error ?? "Unknown error")}</div>`;
+            } else {
+              details = `<span class="muted">Running...</span>`;
+            }
+
+            return `
+              <tr>
+                <td class="nowrap">${escapeHtml(created)}</td>
+                <td class="mono">${id}</td>
+                <td class="mono">${ticker}</td>
+                <td>${badge(status)}</td>
+                <td>${details}</td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      async function refreshJobs() {
+        const res = await fetch("/api/jobs");
+        if (!res.ok) return;
+        const jobs = await res.json();
+        renderJobs(jobs);
+
+        const active = jobs.some((j) => j.status === "queued" || j.status === "running");
+        scheduleNext(active ? 1000 : 5000);
+      }
+
+      let pollTimer = null;
+      function scheduleNext(ms) {
+        if (pollTimer) clearTimeout(pollTimer);
+        pollTimer = setTimeout(refreshJobs, ms);
+      }
+
+      document.getElementById("submit").addEventListener("click", (e) => {
+        e.preventDefault();
+        submitJob();
+      });
+
+      refreshJobs();
+    </script>
+  </body>
+</html>
