@@ -11,6 +11,12 @@ terraform {
 
 provider "aws" {
   region = var.region
+  default_tags {
+    tags = {
+      Project   = "kube-montecarlo-jobs"
+      ManagedBy = "terraform"
+    }
+  }  
 }
 
 # If you don't want to pass AZ, you can auto-pick the first AZ in the region.
@@ -130,4 +136,14 @@ output "public_ip" {
 
 output "az_used" {
   value = local.az
+}
+
+terraform {
+  backend "s3" {
+    bucket         = "kube-montecarlo-jobs"
+    key            = "terrafrom/terraform.tfstate"
+    region         = "us-west-2"
+    #dynamodb_table = "kube-montecarlo-jobs"
+    encrypt        = true
+  }
 }
