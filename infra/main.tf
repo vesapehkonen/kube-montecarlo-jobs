@@ -140,10 +140,10 @@ output "az_used" {
 
 terraform {
   backend "s3" {
-    bucket         = "kube-montecarlo-jobs"
-    key            = "terrafrom/terraform.tfstate"
-    region         = "us-west-2"
+    bucket  = "kube-montecarlo-jobs"
+    key     = "terraform/terraform.tfstate"
+    region  = "us-west-2"
+    encrypt = true
     #dynamodb_table = "kube-montecarlo-jobs"
-    encrypt        = true
   }
 }
