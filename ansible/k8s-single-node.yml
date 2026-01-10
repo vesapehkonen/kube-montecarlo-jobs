@@ -149,7 +149,9 @@
       become_user: ubuntu
       environment:
         KUBECONFIG: /home/ubuntu/.kube/config
-      command: >
-        kubectl taint nodes --all node-role.kubernetes.io/control-plane-
-
-        
+      command: kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+      register: taint_remove
+      failed_when: >
+        taint_remove.rc != 0 and
+        ("not found" not in (taint_remove.stderr | lower))
+      changed_when: taint_remove.rc == 0
