@@ -17,8 +17,6 @@ terraform {
   }
 }
 
-
-
 provider "aws" {
   region = var.region
   default_tags {
@@ -93,6 +91,13 @@ resource "aws_security_group" "web" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   # Optional: allow HTTPS too
   # ingress {
@@ -137,8 +142,9 @@ resource "aws_instance" "this" {
   vpc_security_group_ids = [aws_security_group.web.id]
   associate_public_ip_address = true
   iam_instance_profile = "ec2-kube-montecarlo-jobs"
+  key_name = "kube-montecarlo-jobs"
 
-  tags = { Name = "${local.name}-ec2" }
+  tags = { Name = "kube-montecarlo-jobs" }
 }
 
 output "public_ip" {

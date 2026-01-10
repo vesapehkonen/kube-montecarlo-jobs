@@ -1,0 +1,78 @@
+name: ansible-k8s
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Find EC2 public IP by tag
+        id: ec2
+        run: |
+          IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=kube-montecarlo-jobs" "Name=instance-state-name,Values=running" \
+            --query "Reservations[0].Instances[0].PublicIpAddress" \
+            --output text)
+
+          if [ "$IP" = "None" ] || [ -z "$IP" ]; then
+            echo "No running instance found with tag Name=kube-montecarlo-jobs"
+            exit 1
+          fi
+
+          echo "ip=$IP" >> "$GITHUB_OUTPUT"
+          echo "Found IP: $IP"
+
+      - name: Install Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Write SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Trust host key (avoid prompt)
+        run: |
+          ssh-keyscan -H "${{ steps.ec2.outputs.ip }}" >> ~/.ssh/known_hosts
+
+      - name: Wait for SSH
+        run: |
+          for i in {1..30}; do
+            if ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ steps.ec2.outputs.ip }} "echo ok" >/dev/null 2>&1; then
+              echo "SSH is ready"
+              exit 0
+            fi
+            echo "Waiting for SSH..."
+            sleep 10
+          done
+          echo "SSH never became ready"
+          exit 1
+
+      - name: Ansible ping
+        run: |
+          ansible -i "${{ steps.ec2.outputs.ip }}," all -u ubuntu \
+            --private-key ~/.ssh/id_ed25519 -m ping
+          
+      - name: Run Ansible playbook
+        run: |
+          ansible-playbook -i "${{ steps.ec2.outputs.ip }}," \
+            -u ubuntu \
+            --private-key ~/.ssh/id_ed25519 \
+            --ssh-common-args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
+            ansible/k8s-single-node.yml
