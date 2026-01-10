@@ -36,6 +36,14 @@
           overlay
           br_netfilter
 
+    - name: Load overlay module now
+      command: modprobe overlay
+      changed_when: false
+
+    - name: Load br_netfilter module now
+      command: modprobe br_netfilter
+      changed_when: false
+          
     - name: Apply sysctl settings
       copy:
         dest: /etc/sysctl.d/k8s.conf
