@@ -91,8 +91,7 @@
       copy:
         dest: /etc/apt/sources.list.d/kubernetes.list
         content: |
-          deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] \
-          https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/ /
+          deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/ /
 
     - name: Install kubeadm, kubelet, kubectl
       apt:
