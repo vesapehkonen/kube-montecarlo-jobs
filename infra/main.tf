@@ -1,6 +1,14 @@
 terraform {
   required_version = ">= 1.6.0"
 
+  backend "s3" {
+    bucket  = "kube-montecarlo-jobs"
+    key     = "terraform/terraform.tfstate"
+    region  = "us-west-2"
+    encrypt = true
+    # dynamodb_table = "kube-montecarlo-jobs" # optional later
+  }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -8,6 +16,8 @@ terraform {
     }
   }
 }
+
+
 
 provider "aws" {
   region = var.region
@@ -126,6 +136,7 @@ resource "aws_instance" "this" {
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.web.id]
   associate_public_ip_address = true
+  iam_instance_profile = "ec2-kube-montecarlo-jobs"
 
   tags = { Name = "${local.name}-ec2" }
 }
@@ -136,14 +147,4 @@ output "public_ip" {
 
 output "az_used" {
   value = local.az
-}
-
-terraform {
-  backend "s3" {
-    bucket  = "kube-montecarlo-jobs"
-    key     = "terraform/terraform.tfstate"
-    region  = "us-west-2"
-    encrypt = true
-    #dynamodb_table = "kube-montecarlo-jobs"
-  }
 }
