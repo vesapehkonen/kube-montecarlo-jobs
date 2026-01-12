@@ -1,0 +1,100 @@
+name: deploy-app
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Find EC2 public IP by tag
+        id: ec2
+        run: |
+          IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=kube-montecarlo-jobs" "Name=instance-state-name,Values=running" \
+            --query "Reservations[0].Instances[0].PublicIpAddress" \
+            --output text)
+
+          if [ "$IP" = "None" ] || [ -z "$IP" ]; then
+            echo "No running instance found with tag Name=kube-montecarlo-jobs"
+            exit 1
+          fi
+
+          echo "ip=$IP" >> "$GITHUB_OUTPUT"
+          echo "Found IP: $IP"
+
+      - name: Write SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Trust host key (avoid prompt)
+        run: |
+          ssh-keyscan -H "${{ steps.ec2.outputs.ip }}" >> ~/.ssh/known_hosts
+
+      - name: Generate & apply ConfigMap on the node
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          SQS_QUEUE_NAME: kube-montecarlo-jobs-queue
+          DDB_TABLE_NAME: kube-montecarlo-jobs
+          K8S_NAMESPACE: demo-app
+          CONFIGMAP_NAME: app-config
+        run: |
+          ssh -i ~/.ssh/id_ed25519 ubuntu@${{ steps.ec2.outputs.ip }} bash -lc '
+            set -euo pipefail
+
+            AWS_REGION="${AWS_REGION}"
+            SQS_QUEUE_NAME="${SQS_QUEUE_NAME}"
+            DDB_TABLE_NAME="${DDB_TABLE_NAME}"
+            K8S_NAMESPACE="${K8S_NAMESPACE}"
+            CONFIGMAP_NAME="${CONFIGMAP_NAME}"
+
+            # Ensure AWS CLI exists (Ubuntu 22.04 often has it; install if missing)
+            if ! command -v aws >/dev/null 2>&1; then
+              sudo apt-get update
+              sudo apt-get install -y awscli
+            fi
+
+            # Fetch SQS Queue URL
+            SQS_QUEUE_URL=$(aws sqs get-queue-url \
+              --region "$AWS_REGION" \
+              --queue-name "$SQS_QUEUE_NAME" \
+              --query QueueUrl \
+              --output text)
+
+            echo "Using SQS_QUEUE_URL=$SQS_QUEUE_URL"
+            echo "Using DDB_TABLE_NAME=$DDB_TABLE_NAME"
+
+            # Ensure namespace exists
+            kubectl get ns "$K8S_NAMESPACE" >/dev/null 2>&1 || kubectl create ns "$K8S_NAMESPACE"
+
+            # Create/update ConfigMap
+            kubectl -n "$K8S_NAMESPACE" create configmap "$CONFIGMAP_NAME" \
+              --from-literal=AWS_REGION="$AWS_REGION" \
+              --from-literal=SQS_QUEUE_URL="$SQS_QUEUE_URL" \
+              --from-literal=DDB_TABLE_NAME="$DDB_TABLE_NAME" \
+              --dry-run=client -o yaml | kubectl apply -f -
+          '
+      - name: Build ECR image URIs
+        id: images
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+
+          echo "api_image=${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/demo-api:latest" >> $GITHUB_OUTPUT
+          echo "worker_image=${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/demo-worker:latest" >> $GITHUB_OUTPUT
