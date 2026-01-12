@@ -53,38 +53,38 @@ jobs:
           DDB_TABLE_NAME: kube-montecarlo-jobs
           K8S_NAMESPACE: demo-app
           CONFIGMAP_NAME: app-config
-       run: |
-         ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2.outputs.ip }} \
-         "AWS_REGION='${AWS_REGION}' SQS_QUEUE_NAME='${SQS_QUEUE_NAME}' DDB_TABLE_NAME='${DDB_TABLE_NAME}' \
-         K8S_NAMESPACE='${K8S_NAMESPACE}' CONFIGMAP_NAME='${CONFIGMAP_NAME}'bash -s" <<'EOS'
-         set -euo pipefail
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2.outputs.ip }} \
+          "AWS_REGION='${AWS_REGION}' SQS_QUEUE_NAME='${SQS_QUEUE_NAME}' DDB_TABLE_NAME='${DDB_TABLE_NAME}' \
+          K8S_NAMESPACE='${K8S_NAMESPACE}' CONFIGMAP_NAME='${CONFIGMAP_NAME}'bash -s" <<'EOS'
+          set -euo pipefail
 
-         # Ensure AWS CLI exists
-         if ! command -v aws >/dev/null 2>&1; then
-           sudo apt-get update
-           sudo apt-get install -y awscli
-         fi
+          # Ensure AWS CLI exists
+          if ! command -v aws >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y awscli
+          fi
 
-         # Fetch SQS Queue URL
-         SQS_QUEUE_URL=$(aws sqs get-queue-url \
-           --region "$AWS_REGION" \
-           --queue-name "$SQS_QUEUE_NAME" \
-           --query QueueUrl \
-           --output text)
+          # Fetch SQS Queue URL
+          SQS_QUEUE_URL=$(aws sqs get-queue-url \
+            --region "$AWS_REGION" \
+            --queue-name "$SQS_QUEUE_NAME" \
+            --query QueueUrl \
+            --output text)
 
-         echo "Using SQS_QUEUE_URL=$SQS_QUEUE_URL"
-         echo "Using DDB_TABLE_NAME=$DDB_TABLE_NAME"
+          echo "Using SQS_QUEUE_URL=$SQS_QUEUE_URL"
+          echo "Using DDB_TABLE_NAME=$DDB_TABLE_NAME"
 
-         # Ensure namespace exists
-         kubectl get ns "$K8S_NAMESPACE" >/dev/null 2>&1 || kubectl create ns "$K8S_NAMESPACE"
+          # Ensure namespace exists
+          kubectl get ns "$K8S_NAMESPACE" >/dev/null 2>&1 || kubectl create ns "$K8S_NAMESPACE"
 
-         # Create/update ConfigMap
-         kubectl -n "$K8S_NAMESPACE" create configmap "$CONFIGMAP_NAME" \
+          # Create/update ConfigMap
+          kubectl -n "$K8S_NAMESPACE" create configmap "$CONFIGMAP_NAME" \
            --from-literal=AWS_REGION="$AWS_REGION" \
            --from-literal=SQS_QUEUE_URL="$SQS_QUEUE_URL" \
            --from-literal=DDB_TABLE_NAME="$DDB_TABLE_NAME" \
            --dry-run=client -o yaml | kubectl apply -f -
-         EOS
+          EOS
           
       - name: Build ECR image URIs
         id: images
