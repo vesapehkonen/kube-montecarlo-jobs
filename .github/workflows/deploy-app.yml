@@ -67,6 +67,24 @@ jobs:
             --dry-run=client -o yaml | kubectl apply -f -
           EOS
 
+      - name: Create/Update ECR imagePullSecret (OIDC role)
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ECR_PASS=$(aws ecr get-login-password --region "$AWS_REGION")
+
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2.outputs.ip }} bash -s <<EOS
+          set -e
+          kubectl create namespace demo-app --dry-run=client -o yaml | kubectl apply -f -
+
+          kubectl -n demo-app create secret docker-registry ecr-pull \
+          --docker-server=${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com \
+          --docker-username=AWS \
+          --docker-password='${ECR_PASS}' \
+          --dry-run=client -o yaml | kubectl apply -f -
+        EOS
+          
       # ---------- APPLY MANIFESTS ----------
       - name: Apply Kubernetes manifests
         run: |

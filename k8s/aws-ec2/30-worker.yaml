@@ -13,6 +13,8 @@ spec:
       labels:
         app: worker
     spec:
+      imagePullSecrets:
+        - name: ecr-pull
       containers:
         - name: worker
           image: REPLACE_ME_ECR_URI/demo-worker:latest

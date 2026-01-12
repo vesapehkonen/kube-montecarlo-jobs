@@ -13,6 +13,8 @@ spec:
       labels:
         app: api
     spec:
+      imagePullSecrets:
+        - name: ecr-pull
       containers:
         - name: api
           image: REPLACE_ME_ECR_URI/demo-api:latest
