@@ -54,10 +54,14 @@ jobs:
           K8S_NAMESPACE: demo-app
           CONFIGMAP_NAME: app-config
         run: |
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2.outputs.ip }} \
-          "AWS_REGION='${AWS_REGION}' SQS_QUEUE_NAME='${SQS_QUEUE_NAME}' DDB_TABLE_NAME='${DDB_TABLE_NAME}' \
-          K8S_NAMESPACE='${K8S_NAMESPACE}' CONFIGMAP_NAME='${CONFIGMAP_NAME}'bash -s" <<'EOS'
-          set -euo pipefail
+           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2.outputs.ip }} \
+           "AWS_REGION='${AWS_REGION}' \
+           SQS_QUEUE_NAME='${SQS_QUEUE_NAME}' \
+           DDB_TABLE_NAME='${DDB_TABLE_NAME}' \
+           K8S_NAMESPACE='${K8S_NAMESPACE}' \
+           CONFIGMAP_NAME='${CONFIGMAP_NAME}' \
+           bash -s" <<'EOS'
+           set -euo pipefail
 
           # Ensure AWS CLI exists
           if ! command -v aws >/dev/null 2>&1; then
