@@ -65,7 +65,7 @@ jobs:
             --from-literal=SQS_QUEUE_URL="$SQS_QUEUE_URL" \
             --from-literal=DDB_TABLE_NAME="$DDB_TABLE_NAME" \
             --dry-run=client -o yaml | kubectl apply -f -
-            EOS
+          EOS
 
       # ---------- APPLY MANIFESTS ----------
       - name: Apply Kubernetes manifests
@@ -76,7 +76,7 @@ jobs:
           kubectl apply -f /home/ubuntu/aws-ec2/00-namespace.yaml
           kubectl apply -f /home/ubuntu/aws-ec2/20-api.yaml
           kubectl apply -f /home/ubuntu/aws-ec2/30-worker.yaml
-          EOS
+        EOS
 
       # ---------- BUILD IMAGE URIS ----------
       - name: Build ECR image URIs
@@ -93,7 +93,7 @@ jobs:
           set -e
           kubectl -n demo-app set image deployment/api api=${{ steps.images.outputs.api }}
           kubectl -n demo-app set image deployment/worker worker=${{ steps.images.outputs.worker }}
-          EOS
+        EOS
 
       # ---------- ROLLOUT CHECK ----------
       - name: Wait for rollout
@@ -101,4 +101,4 @@ jobs:
           ssh -i ~/.ssh/id_ed25519 ubuntu@${{ steps.ec2.outputs.ip }} bash -s <<'EOS'
           kubectl -n demo-app rollout status deployment/api
           kubectl -n demo-app rollout status deployment/worker
-          EOS
+        EOS
