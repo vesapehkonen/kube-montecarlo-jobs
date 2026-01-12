@@ -70,7 +70,7 @@ jobs:
       # ---------- APPLY MANIFESTS ----------
       - name: Apply Kubernetes manifests
         run: |
-          scp -i ~/.ssh/id_ed25519 -r k8k/aws-ec2 ubuntu@${{ steps.ec2.outputs.ip }}:/home/ubuntu/aws-ec2
+          scp -i ~/.ssh/id_ed25519 -r k8s/aws-ec2 ubuntu@${{ steps.ec2.outputs.ip }}:/home/ubuntu/aws-ec2
           ssh -i ~/.ssh/id_ed25519 ubuntu@${{ steps.ec2.outputs.ip }} bash -s <<'EOS'
           set -e
           kubectl apply -f /home/ubuntu/aws-ec2/00-namespace.yaml
