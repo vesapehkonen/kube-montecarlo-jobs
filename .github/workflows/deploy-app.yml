@@ -110,7 +110,7 @@ jobs:
           echo "ACCOUNT_ID=${ACCOUNT_ID}"
           echo "ECR_URI=${ECR_URI}"
 
-          scp -i ~/.ssh/id_ed25519 k8s/aws-ec2/*.yml ubuntu@${{ steps.ec2.outputs.ip }}:/home/ubuntu/
+          scp -i ~/.ssh/id_ed25519 k8s/aws-ec2/*.yaml ubuntu@${{ steps.ec2.outputs.ip }}:/home/ubuntu/
 
           ssh -i ~/.ssh/id_ed25519 ubuntu@${{ steps.ec2.outputs.ip }} "ECR_URI='${ECR_URI}' bash -s" <<'EOS'
           set -e
