@@ -10,6 +10,11 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      SQS_QUEUE_NAME: kube-montecarlo-jobs-queue
+      DDB_TABLE_NAME: kube-montecarlo-jobs
+      APP_MODE: aws
 
     steps:
       - uses: actions/checkout@v4
@@ -21,6 +26,17 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
+      - name: Compute SQS queue URL
+        id: sqs
+        run: |
+          set -euo pipefail
+          SQS_QUEUE_URL="$(aws sqs get-queue-url \
+            --region "${AWS_REGION}" \
+            --queue-name "${SQS_QUEUE_NAME}" \
+            --query QueueUrl \
+            --output text)"
+          echo "queue_url=${SQS_QUEUE_URL}" >> "$GITHUB_OUTPUT"
+          
       # ---------- DISCOVER EC2 ----------
       - name: Find EC2 public IP
         id: ec2
@@ -50,14 +66,12 @@ jobs:
           APP_MODE: aws
         run: |
           ssh -i ~/.ssh/id_ed25519 ubuntu@${{ steps.ec2.outputs.ip }} \
-            "AWS_REGION=$AWS_REGION SQS_QUEUE_NAME=$SQS_QUEUE_NAME DDB_TABLE_NAME=$DDB_TABLE_NAME bash -s" <<'EOS'
+            "AWS_REGION=$AWS_REGION \
+             SQS_QUEUE_URL='${{ steps.sqs.outputs.queue_url }}' \
+             DDB_TABLE_NAME=$DDB_TABLE_NAME \
+             APP_MODE=$APP_MODE \
+             bash -s" <<'EOS'
           set -e
-
-          SQS_QUEUE_URL=$(aws sqs get-queue-url \
-            --region "$AWS_REGION" \
-            --queue-name "$SQS_QUEUE_NAME" \
-            --query QueueUrl \
-            --output text)
 
           kubectl create namespace demo-app --dry-run=client -o yaml | kubectl apply -f -
 
@@ -65,6 +79,7 @@ jobs:
             --from-literal=AWS_REGION="$AWS_REGION" \
             --from-literal=SQS_QUEUE_URL="$SQS_QUEUE_URL" \
             --from-literal=DDB_TABLE_NAME="$DDB_TABLE_NAME" \
+            --from-literal=APP_MODE="$APP_MODE" \
             --dry-run=client -o yaml | kubectl apply -f -
           EOS
 
