@@ -108,6 +108,7 @@ jobs:
           ECR_URI="${ACCOUNT_ID}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com"
           scp -i ~/.ssh/id_ed25519 -r k8s/aws-ec2 ubuntu@${{ steps.ec2.outputs.ip }}:/home/ubuntu/aws-ec2
           ssh -i ~/.ssh/id_ed25519 ubuntu@${{ steps.ec2.outputs.ip }} bash -s <<'EOS'
+          ssh -i ~/.ssh/id_ed25519 ubuntu@${{ steps.ec2.outputs.ip }} "ECR_URI='${ECR_URI}' bash -s" <<'EOS'
           set -e
           sed -i "s|REPLACE_ME_ECR_URI|${ECR_URI}|g" /home/ubuntu/aws-ec2/20-api.yaml
           sed -i "s|REPLACE_ME_ECR_URI|${ECR_URI}|g" /home/ubuntu/aws-ec2/30-worker.yaml
@@ -117,12 +118,12 @@ jobs:
           EOS
 
       # ---------- BUILD IMAGE URIS ----------
-      - name: Build ECR image URIs
-        id: images
-        run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          echo "api=${ACCOUNT_ID}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com//kube-montecarlo-jobs-api:latest" >> $GITHUB_OUTPUT
-          echo "worker=${ACCOUNT_ID}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com//kube-montecarlo-jobs-worker:latest" >> $GITHUB_OUTPUT
+      #- name: Build ECR image URIs
+      #  id: images
+      #  run: |
+      #    ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      #    echo "api=${ACCOUNT_ID}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com//kube-montecarlo-jobs-api:latest" >> $GITHUB_OUTPUT
+      #    echo "worker=${ACCOUNT_ID}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com//kube-montecarlo-jobs-worker:latest" >> $GITHUB_OUTPUT
 
       # ---------- UPDATE IMAGES ----------
       #- name: Update images
