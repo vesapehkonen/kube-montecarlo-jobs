@@ -110,15 +110,15 @@ jobs:
           echo "ACCOUNT_ID=${ACCOUNT_ID}"
           echo "ECR_URI=${ECR_URI}"
 
-          scp -i ~/.ssh/id_ed25519 -r k8s/aws-ec2 ubuntu@${{ steps.ec2.outputs.ip }}:/home/ubuntu/aws-ec2
+          scp -i ~/.ssh/id_ed25519 k8s/aws-ec2/*.yml ubuntu@${{ steps.ec2.outputs.ip }}:/home/ubuntu/
 
           ssh -i ~/.ssh/id_ed25519 ubuntu@${{ steps.ec2.outputs.ip }} "ECR_URI='${ECR_URI}' bash -s" <<'EOS'
           set -e
-          sed -i "s|REPLACE_ME_ECR_URI|${ECR_URI}|g" /home/ubuntu/aws-ec2/20-api.yaml
-          sed -i "s|REPLACE_ME_ECR_URI|${ECR_URI}|g" /home/ubuntu/aws-ec2/30-worker.yaml
-          kubectl apply -f /home/ubuntu/aws-ec2/00-namespace.yaml
-          kubectl apply -f /home/ubuntu/aws-ec2/20-api.yaml
-          kubectl apply -f /home/ubuntu/aws-ec2/30-worker.yaml
+          sed -i "s|REPLACE_ME_ECR_URI|${ECR_URI}|g" /home/ubuntu/20-api.yaml
+          sed -i "s|REPLACE_ME_ECR_URI|${ECR_URI}|g" /home/ubuntu/30-worker.yaml
+          kubectl apply -f /home/ubuntu/00-namespace.yaml
+          kubectl apply -f /home/ubuntu/20-api.yaml
+          kubectl apply -f /home/ubuntu/30-worker.yaml
           EOS
 
       # ---------- BUILD IMAGE URIS ----------
