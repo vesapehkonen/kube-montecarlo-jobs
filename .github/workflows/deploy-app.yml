@@ -101,8 +101,8 @@ jobs:
         id: images
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          echo "api=${ACCOUNT_ID}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/demo-api:latest" >> $GITHUB_OUTPUT
-          echo "worker=${ACCOUNT_ID}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/demo-worker:latest" >> $GITHUB_OUTPUT
+          echo "api=${ACCOUNT_ID}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com//kube-montecarlo-jobs-api:latest" >> $GITHUB_OUTPUT
+          echo "worker=${ACCOUNT_ID}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com//kube-montecarlo-jobs-worker:latest" >> $GITHUB_OUTPUT
 
       # ---------- UPDATE IMAGES ----------
       - name: Update images
