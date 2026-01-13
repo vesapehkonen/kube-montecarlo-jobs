@@ -47,6 +47,7 @@ jobs:
           AWS_REGION: ${{ vars.AWS_REGION }}
           SQS_QUEUE_NAME: kube-montecarlo-jobs-queue
           DDB_TABLE_NAME: kube-montecarlo-jobs
+          APP_MODE: aws
         run: |
           ssh -i ~/.ssh/id_ed25519 ubuntu@${{ steps.ec2.outputs.ip }} \
             "AWS_REGION=$AWS_REGION SQS_QUEUE_NAME=$SQS_QUEUE_NAME DDB_TABLE_NAME=$DDB_TABLE_NAME bash -s" <<'EOS'

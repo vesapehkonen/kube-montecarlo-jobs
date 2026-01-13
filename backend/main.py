@@ -10,7 +10,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from backend.backend_io import JobMsg, RedisJobQueue, RedisJobStore, build_redis
+#from backend.backend_io import JobMsg, RedisJobQueue, RedisJobStore, build_redis
+from backend.wiring import build_backend
+from backend.interfaces import JobMsg
 
 logger = logging.getLogger("demoapp")
 
@@ -19,9 +21,11 @@ app = FastAPI(title="Job Demo API")
 # -------------------------
 # Redis-backed store + queue
 # -------------------------
-r = build_redis()
-store = RedisJobStore(r)
-queue = RedisJobQueue(r)
+store, queue = build_backend()
+
+#r = build_redis()
+#store = RedisJobStore(r)
+#queue = RedisJobQueue(r)
 
 # -------------------------
 # API models

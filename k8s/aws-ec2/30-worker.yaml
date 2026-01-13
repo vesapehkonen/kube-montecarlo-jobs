@@ -17,7 +17,7 @@ spec:
         - name: ecr-pull
       containers:
         - name: worker
-          image: REPLACE_ME_ECR_URI/demo-worker:latest
+          image: REPLACE_ME_ECR_URI/kube-montecarlo-jobs-worker:latest
           imagePullPolicy: Always
           envFrom:
             - configMapRef:

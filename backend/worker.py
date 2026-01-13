@@ -1,21 +1,26 @@
 import time
 import logging
 
-from backend.backend_io import RedisJobQueue, RedisJobStore, build_redis
 from backend.sim import get_prices_stooq, fake_price_history, monte_carlo_gbm_metrics
+
+#from backend.backend_io import RedisJobQueue, RedisJobStore, build_redis
+from backend.wiring import build_backend
+from backend.interfaces import JobMsg
 
 logger = logging.getLogger("demoapp")
 
 
 def main():
-    r = build_redis()
-    store = RedisJobStore(r)
-    queue = RedisJobQueue(r)
+    #r = build_redis()
+    #store = RedisJobStore(r)
+    #queue = RedisJobQueue(r)
+    store, queue = build_backend()
 
     print("[worker] started, waiting for jobs...")
 
     while True:
-        msg = queue.dequeue_blocking()
+        item = queue.dequeue_blocking()
+        msg = item.msg
 
         job = store.load(msg.job_id)
         if not job:
@@ -55,7 +60,8 @@ def main():
             job["error"] = str(e)
             job["finished_at"] = time.time()
             store.save(job)
-
+        finally:
+            item.ack()
 
 if __name__ == "__main__":
     main()
