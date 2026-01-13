@@ -104,9 +104,13 @@ jobs:
       # ---------- APPLY MANIFESTS ----------
       - name: Apply Kubernetes manifests
         run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ECR_URI="${ACCOUNT_ID}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com"
           scp -i ~/.ssh/id_ed25519 -r k8s/aws-ec2 ubuntu@${{ steps.ec2.outputs.ip }}:/home/ubuntu/aws-ec2
           ssh -i ~/.ssh/id_ed25519 ubuntu@${{ steps.ec2.outputs.ip }} bash -s <<'EOS'
           set -e
+          sed -i "s|REPLACE_ME_ECR_URI|${ECR_URI}|g" /home/ubuntu/aws-ec2/20-api.yaml
+          sed -i "s|REPLACE_ME_ECR_URI|${ECR_URI}|g" /home/ubuntu/aws-ec2/30-worker.yaml
           kubectl apply -f /home/ubuntu/aws-ec2/00-namespace.yaml
           kubectl apply -f /home/ubuntu/aws-ec2/20-api.yaml
           kubectl apply -f /home/ubuntu/aws-ec2/30-worker.yaml
@@ -121,18 +125,18 @@ jobs:
           echo "worker=${ACCOUNT_ID}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com//kube-montecarlo-jobs-worker:latest" >> $GITHUB_OUTPUT
 
       # ---------- UPDATE IMAGES ----------
-      - name: Update images
-        run: |
-          ssh -i ~/.ssh/id_ed25519 ubuntu@${{ steps.ec2.outputs.ip }} bash -s <<'EOS'
-          set -e
-          kubectl -n demo-app set image deployment/api api=${{ steps.images.outputs.api }}
-          kubectl -n demo-app set image deployment/worker worker=${{ steps.images.outputs.worker }}
-          EOS
+      #- name: Update images
+      #  run: |
+      #    ssh -i ~/.ssh/id_ed25519 ubuntu@${{ steps.ec2.outputs.ip }} bash -s <<'EOS'
+      #    set -e
+      #    kubectl -n demo-app set image deployment/api api=${{ steps.images.outputs.api }}
+      #    kubectl -n demo-app set image deployment/worker worker=${{ steps.images.outputs.worker }}
+      #    EOS
 
       # ---------- ROLLOUT CHECK ----------
-      - name: Wait for rollout
-        run: |
-          ssh -i ~/.ssh/id_ed25519 ubuntu@${{ steps.ec2.outputs.ip }} bash -s <<'EOS'
-          kubectl -n demo-app rollout status deployment/api
-          kubectl -n demo-app rollout status deployment/worker
-          EOS
+      #- name: Wait for rollout
+      #  run: |
+      #    ssh -i ~/.ssh/id_ed25519 ubuntu@${{ steps.ec2.outputs.ip }} bash -s <<'EOS'
+      #    kubectl -n demo-app rollout status deployment/api
+      #    kubectl -n demo-app rollout status deployment/worker
+      #    EOS
