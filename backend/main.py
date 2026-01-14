@@ -66,7 +66,6 @@ def create_job(req: CreateJobRequest):
     now = time.time()
 
     job = {
-        "job_id": job_id,
         "id": job_id,
         "ticker": req.ticker.strip().upper(),
         "status": "queued",

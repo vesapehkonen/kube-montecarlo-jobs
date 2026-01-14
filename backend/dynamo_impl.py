@@ -17,7 +17,7 @@ class DynamoJobStore:
 
     def save(self, job: dict[str, Any]) -> None:
         item = {
-            "id": str(job["id"]),
+            "job_id": str(job["id"]),
             "payload": json.dumps(job, default=str),
         }
 
@@ -31,7 +31,7 @@ class DynamoJobStore:
         self._table.put_item(Item=item)
 
     def load(self, job_id: str) -> Optional[dict[str, Any]]:
-        resp = self._table.get_item(Key={"id": job_id})
+        resp = self._table.get_item(Key={"job_id": job_id})
         item = resp.get("Item")
         if not item:
             return None
