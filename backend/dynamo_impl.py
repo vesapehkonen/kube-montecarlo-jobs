@@ -18,7 +18,7 @@ class DynamoJobStore:
     def save(self, job: dict[str, Any]) -> None:
         item = {
             "id": job["id"],
-            "payload": json.dumps(job),
+            "payload": json.dumps(job, default=str),  # default=str handles any odd types
         }
         # Optional, helps sorting without parsing payload
         if "created_at" in job:
