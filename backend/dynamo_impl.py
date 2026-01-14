@@ -17,16 +17,17 @@ class DynamoJobStore:
 
     def save(self, job: dict[str, Any]) -> None:
         item = {
-            "id": job["id"],
-            "payload": json.dumps(job, default=str),  # default=str handles any odd types
+            "id": str(job["id"]),
+            "payload": json.dumps(job, default=str),
         }
-        # Optional, helps sorting without parsing payload
+
+        # Store created_at as INTEGER milliseconds (Dynamo-safe)
         if "created_at" in job:
             try:
-                item["created_at"] = float(job["created_at"])
+                item["created_at"] = int(float(job["created_at"]) * 1000)
             except Exception:
                 pass
-
+            
         self._table.put_item(Item=item)
 
     def load(self, job_id: str) -> Optional[dict[str, Any]]:
@@ -57,7 +58,10 @@ class DynamoJobStore:
             if not last_key:
                 break
 
-        jobs.sort(key=lambda j: float(j.get("created_at", 0.0)), reverse=True)
+        jobs.sort(
+            key=lambda j: float(j.get("created_at", 0.0) or 0.0),
+            reverse=True,
+        )
         return jobs
 
 
