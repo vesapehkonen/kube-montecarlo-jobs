@@ -13,7 +13,7 @@ jobs:
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
       SQS_QUEUE_NAME: kube-montecarlo-jobs-queue
-      DDB_TABLE_NAME: kube-montecarlo-jobs
+      DDB_TABLE_NAME: kube-montecarlo-jobs-results
       APP_MODE: aws
 
     steps:
@@ -62,7 +62,7 @@ jobs:
         env:
           AWS_REGION: ${{ vars.AWS_REGION }}
           SQS_QUEUE_NAME: kube-montecarlo-jobs-queue
-          DDB_TABLE_NAME: kube-montecarlo-jobs
+          DDB_TABLE_NAME: kube-montecarlo-jobs-results
           APP_MODE: aws
         run: |
           ssh -i ~/.ssh/id_ed25519 ubuntu@${{ steps.ec2.outputs.ip }} \
