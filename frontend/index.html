@@ -79,6 +79,10 @@
   <body>
     <h1>Job Processing Demo</h1>
 
+    <p class="muted" style="margin-bottom: 12px">
+      Submit a stock price Monte Carlo simulation and watch it run asynchronously on background workers.
+    </p>
+
     <div class="card">
       <div class="row">
         <label>
@@ -88,11 +92,13 @@
 
         <label>
           Horizon (days)
+          <span class="muted">Number of trading days to simulate</span>
           <input id="horizon_days" type="number" min="1" max="3650" value="252" />
         </label>
 
         <label>
           Simulations
+          <span class="muted">Number of random price paths</span>
           <input id="simulations" type="number" min="100" max="2000000" value="50000" />
         </label>
 
@@ -100,7 +106,7 @@
       </div>
 
       <div class="muted" style="margin-top: 10px">
-        CPU-bound Monte Carlo simulation. Polling updates automatically.
+        CPU-bound Monte Carlo simulation running asynchronously (ideal for Kubernetes worker scaling). Results update automatically.
       </div>
 
       <table>
@@ -110,7 +116,7 @@
             <th class="nowrap">Job ID</th>
             <th class="nowrap">Ticker</th>
             <th class="nowrap">Status</th>
-            <th>Result / Error</th>
+            <th>Simulation result</th>
           </tr>
         </thead>
         <tbody id="jobsBody">
@@ -119,6 +125,14 @@
           </tr>
         </tbody>
       </table>
+
+      <div class="muted" style="margin-top: 6px">
+        Result fields:
+        <span class="mono">current</span> = latest price ·
+        <span class="mono">expected</span> = mean simulated price ·
+        <span class="mono">VaR95</span> = 95% downside risk ·
+        <span class="mono">pLoss</span> = probability of loss
+      </div>
     </div>
 
     <script>
