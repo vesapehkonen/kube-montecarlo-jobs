@@ -4,7 +4,7 @@ metadata:
   name: worker
   namespace: demo-app
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: worker
@@ -27,5 +27,5 @@ spec:
               cpu: "250m"
               memory: "128Mi"
             limits:
-              cpu: "2000m"
-              memory: "512Mi"
+              cpu: "700m"
+              memory: "1024Mi"
