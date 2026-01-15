@@ -1,4 +1,4 @@
-name: Build and push images to ECR
+name: build-and-push-ecr
 
 on:
   push:
