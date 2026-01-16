@@ -47,11 +47,6 @@ jobs:
 
           echo "All required variables are set."
 
-      - name: Show OIDC subject
-        run: |
-          echo "Request URL present? ${ACTIONS_ID_TOKEN_REQUEST_URL:+yes}"
-          echo "Request token present? ${ACTIONS_ID_TOKEN_REQUEST_TOKEN:+yes}"
-      
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
