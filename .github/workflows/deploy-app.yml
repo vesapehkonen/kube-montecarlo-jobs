@@ -97,6 +97,9 @@ jobs:
           set -e
           kubectl create namespace demo-app --dry-run=client -o yaml | kubectl apply -f -
 
+          # Always refresh ECR pull secret (ECR tokens expire)
+          kubectl -n demo-app delete secret ecr-pull --ignore-not-found
+          
           kubectl -n demo-app create secret docker-registry ecr-pull \
             --docker-server=${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com \
             --docker-username=AWS \
