@@ -148,7 +148,7 @@ resource "aws_instance" "this" {
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.web.id]
   associate_public_ip_address = true
-  iam_instance_profile = "ec2-kube-montecarlo-jobs"
+  iam_instance_profile = "kube-montecarlo-jobs-ec2"
   key_name = "kube-montecarlo-jobs"
 
   tags = { Name = "kube-montecarlo-jobs" }
