@@ -7,6 +7,9 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  ROLE_NAME: "kube-montecarlo-jobs-runtime"
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -23,7 +26,7 @@ jobs:
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Compute SQS queue URL
