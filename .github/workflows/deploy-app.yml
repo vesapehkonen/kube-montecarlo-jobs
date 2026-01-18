@@ -105,9 +105,12 @@ jobs:
             --docker-username=AWS \
             --docker-password='${ECR_PASS}' \
             --dry-run=client -o yaml | kubectl apply -f -
+
+          kubectl -n demo-app get secret ecr-pull -o jsonpath='{.type}{"\n"}'
+          kubectl -n demo-app get secret ecr-pull -o jsonpath='{.data.\.dockerconfigjson}' | base64 -d | head
           EOS
           
-      # ---------- APPLY MANIFESTS ----------
+          # ---------- APPLY MANIFESTS ----------
       - name: Apply Kubernetes manifests
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
