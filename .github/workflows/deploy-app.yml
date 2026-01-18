@@ -108,6 +108,9 @@ jobs:
 
           kubectl -n demo-app get secret ecr-pull -o jsonpath='{.type}{"\n"}'
           kubectl -n demo-app get secret ecr-pull -o jsonpath='{.data.\.dockerconfigjson}' | base64 -d | head
+
+          kubectl -n demo-app patch serviceaccount default -p '{"imagePullSecrets":[{"name":"ecr-pull"}]}'
+          kubectl -n demo-app get sa default -o jsonpath='{.imagePullSecrets}{"\n"}'
           EOS
           
           # ---------- APPLY MANIFESTS ----------
