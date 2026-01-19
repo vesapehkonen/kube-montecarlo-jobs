@@ -6,6 +6,10 @@ The system lets you submit Monte Carlo simulation jobs for stock price forecasti
 
 ---
 
+![kube-montecarlo-jobs screenshot](./kube-montecarlo-jobs.jpg)
+
+---
+
 ## Features
 
 - **API + UI** built with FastAPI
