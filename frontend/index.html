@@ -47,7 +47,8 @@
       table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 16px;
+        margin-top: 20px;
+        background: #ffffff;
       }
       th, td {
         border-top: 1px solid #e5e7eb;
@@ -78,9 +79,11 @@
 
   <body>
     <h1>Job Processing Demo</h1>
-
+    <p class="muted">
+     FastAPI · Redis · Background workers · Kubernetes-ready
+    </p>
     <p class="muted" style="margin-bottom: 12px">
-      Submit a stock price Monte Carlo simulation and watch it run asynchronously on background workers.
+      Submit a Monte Carlo simulation and observe asynchronous background processing.
     </p>
 
     <div class="card">
@@ -106,7 +109,7 @@
       </div>
 
       <div class="muted" style="margin-top: 10px">
-        CPU-bound Monte Carlo simulation running asynchronously (ideal for Kubernetes worker scaling). Results update automatically.
+        CPU-bound Monte Carlo simulation running asynchronously. Results update automatically.
       </div>
 
       <table>
